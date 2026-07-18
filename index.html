@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Bán Vé - Ticket Booking</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #111827 100%);
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent: #10b981;
+            --accent-hover: #059669;
+            --primary-btn: #6366f1;
+            --primary-hover: #4f46e5;
+            --danger: #ef4444;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        body { background: var(--bg-gradient); color: var(--text-primary); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
+        
+        .glass-panel { background: var(--glass-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid var(--glass-border); border-radius: 16px; padding: 30px; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); }
+        h2 { font-size: 1.6rem; margin-bottom: 20px; text-align: center; font-weight: 600; }
+        .input-group { margin-bottom: 14px; text-align: left; }
+        label { display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 6px; }
+        input, select { width: 100%; padding: 11px 14px; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text-primary); font-size: 0.95rem; transition: all 0.2s; }
+        input:focus, select:focus { outline: none; border-color: var(--primary-btn); box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2); }
+        
+        button { width: 100%; padding: 12px; background: var(--primary-btn); border: none; border-radius: 8px; color: white; font-weight: 500; font-size: 1rem; cursor: pointer; transition: background 0.2s; margin-top: 10px; }
+        button:hover { background: var(--primary-hover); }
+
+        #login-container { width: 100%; max-width: 400px; }
+        #booking-system { display: none; width: 100%; max-width: 1100px; grid-template-columns: 1fr; gap: 24px; }
+        @media (min-width: 768px) { #booking-system { grid-template-columns: 1fr 1.2fr; } .full-width { grid-column: span 2; } }
+
+        /* Modal Pop-up */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: #1e1b4b; border: 1px solid var(--glass-border); border-radius: 16px; padding: 24px; width: 90%; max-width: 450px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        .modal-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
+        .btn-success { background: var(--accent); } .btn-success:hover { background: var(--accent-hover); }
+        .btn-danger { background: rgba(239, 68, 68, 0.2); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.4); } .btn-danger:hover { background: rgba(239, 68, 68, 0.3); }
+
+        /* Table log */
+        .data-table-container { margin-top: 15px; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem; }
+        th, td { padding: 10px 12px; border-bottom: 1px solid var(--glass-border); }
+        th { color: var(--text-secondary); font-weight: 500; }
+    </style>
+</head>
+<body>
+
+    <!-- MÀN HÌNH ĐĂNG NHẬP -->
+    <div id="login-container" class="glass-panel">
+        <h2>Đăng Nhập Bán Vé</h2>
+        <div class="input-group">
+            <label>Tài khoản bán vé</label>
+            <input type="text" id="login-username" placeholder="Nhập tài khoản đã tạo...">
+        </div>
+        <button onclick="handleUserLogin()">Vào hệ thống</button>
+    </div>
+
+    <!-- MÀN HÌNH HỆ THỐNG CHÍNH -->
+    <div id="booking-system">
+        
+        <!-- Thanh tiêu đề -->
+        <div class="glass-panel full-width" style="display: flex; justify-content: space-between; align-items: center; padding: 16px 30px;">
+            <div>
+                <h3 style="font-weight: 600;">Cổng Bán Vé Khách Hàng</h3>
+                <p style="color: var(--text-secondary); font-size: 0.85rem;">Nhân viên: <span id="staff-name" style="color: #6366f1; font-weight: 600;">None</span></p>
+            </div>
+            <button onclick="location.reload()" style="width: auto; margin: 0; padding: 6px 14px; font-size: 0.85rem;" class="btn-danger">Đăng xuất</button>
+        </div>
+
+        <!-- Khung nhập thông tin -->
+        <div class="glass-panel">
+            <h3 style="margin-bottom: 16px; font-weight: 600;">Nhập thông tin khách hàng</h3>
+            <div class="input-group">
+                <label>Họ và tên khách hàng</label>
+                <input type="text" id="cust-name" placeholder="Nguyễn Văn A">
+            </div>
+            <div class="input-group">
+                <label>Số CCCD / Định danh</label>
+                <input type="text" id="cust-id" placeholder="001xxxxxxxx">
+            </div>
+            <div class="input-group">
+                <label>Số điện thoại</label>
+                <input type="text" id="cust-phone" placeholder="09xxxxxxxx">
+            </div>
+            <div class="input-group">
+                <label>Chọn Sự Kiện (Đang Online)</label>
+                <select id="select-event" onchange="updateTicketClasses()"></select>
+            </div>
+            <div class="input-group">
+                <label>Chọn Hạng Vé</label>
+                <select id="select-ticket-class"></select>
+            </div>
+            <button onclick="openConfirmationModal()" style="background: var(--primary-btn);">Tạo Vé (Kiểm tra)</button>
+        </div>
+
+        <!-- Khung hiển thị danh sách vé bán thành công -->
+        <div class="glass-panel">
+            <h3 style="margin-bottom: 16px; font-weight: 600;">Lịch sử vé đã bán thành công</h3>
+            <div class="data-table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Mã vé</th>
+                            <th>Khách hàng</th>
+                            <th>Sự kiện</th>
+                            <th>Hạng vé</th>
+                            <th>Check-in</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sold-tickets-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- POPUP XÁC NHẬN BÁN VÉ -->
+    <div id="confirm-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 style="color: var(--accent); margin-bottom: 15px; text-align: center;">Xác Nhận Đơn Hàng</h3>
+            <div style="border-bottom: 1px solid var(--glass-border); padding-bottom: 12px; font-size: 0.9rem; line-height: 1.6;">
+                <p><strong>Khách hàng:</strong> <span id="lbl-cust-name" style="color: #fff;"></span></p>
+                <p><strong>Số điện thoại:</strong> <span id="lbl-cust-phone"></span></p>
+                <p><strong>Sự kiện:</strong> <span id="lbl-event-name"></span></p>
+                <p><strong>Hạng vé:</strong> <span id="lbl-ticket-class"></span></p>
+                <p><strong>Mã vé dự kiến:</strong> <span id="lbl-ticket-code" style="color: #fbbf24; font-weight: 600;"></span></p>
+                <p><strong>Thời gian Check-in:</strong> <span id="lbl-checkin-time" style="color: #60a5fa;"></span></p>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-success" onclick="confirmPurchase()">Xác nhận mua</button>
+                <button class="btn-danger" onclick="closeModal()">Hủy vé</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ĐƯỜNG DẪN URL GOOGLE APPS SCRIPT DÙNG CHUNG VỚI FILE 1
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwS8CLJ3YrEY_whiWfzUW-MxfeYIV_R2gD28BUMmb_eIRlbqJkfVzhI-ffdnfTIhF0Z0Q/exec";
+
+        let dbUsers = [];
+        let dbEvents = [];
+        let dbTickets = [];
+        let currentTicketIndex = 0; // Biến đếm tăng dần +1
+        let tempActiveTicket = null; // Lưu tạm thời thông tin trước khi nhấn xác nhận mua
+
+        // 1. Kiểm tra Đăng nhập tài khoản từ cơ sở dữ liệu chung
+        function handleUserLogin() {
+            const usernameInput = document.getElementById('login-username').value.trim();
+            if(!usernameInput) return alert("Vui lòng điền tài khoản!");
+
+            // Kiểm tra nội bộ hoặc lấy từ DB trực tuyến
+            if (SCRIPT_URL.includes("YOUR_GOOGLE")) {
+                let localUsers = JSON.parse(localStorage.getItem('users')) || [];
+                dbUsers = [{username: "admin2026"}, ...localUsers];
+                verifyUser(usernameInput);
+            } else {
+                fetch(`${SCRIPT_URL}?action=users`)
+                    .then(res => res.json())
+                    .then(data => {
+                        dbUsers = [{username: "admin2026"}, ...data];
+                        verifyUser(usernameInput);
+                    }).catch(() => alert("Không thể kết nối cơ sở dữ liệu!"));
+            }
+        }
+
+        function verifyUser(username) {
+            const isExist = dbUsers.some(u => u.username === username);
+            if(isExist) {
+                document.getElementById('login-container').style.display = 'none';
+                document.getElementById('booking-system').style.display = 'grid';
+                document.getElementById('staff-name').innerText = username;
+                // Đồng bộ và tải danh sách
+                loadSystemData();
+            } else {
+                alert("Tài khoản không tồn tại hoặc chưa được phân quyền hệ thống!");
+            }
+        }
+
+        // Tải dữ liệu Sự kiện và Hạng vé từ Database chung
+        function loadSystemData() {
+            if (SCRIPT_URL.includes("YOUR_GOOGLE")) {
+                dbEvents = JSON.parse(localStorage.getItem('events')) || [];
+                dbTickets = JSON.parse(localStorage.getItem('tickets')) || [];
+                renderEventDropdown();
+                renderSoldTicketsTable(JSON.parse(localStorage.getItem('orders')) || []);
+            } else {
+                Promise.all([
+                    fetch(`${SCRIPT_URL}?action=events`).then(r => r.json()),
+                    fetch(`${SCRIPT_URL}?action=tickets`).then(r => r.json()),
+                    fetch(`${SCRIPT_URL}?action=orders`).then(r => r.json()).catch(() => [])
+                ]).then(([events, tickets, orders]) => {
+                    dbEvents = events;
+                    dbTickets = tickets;
+                    renderEventDropdown();
+                    renderSoldTicketsTable(orders);
+                });
+            }
+        }
+
+        // Lọc các sự kiện có trạng thái "Online" hiển thị ra màn hình
+        function renderEventDropdown() {
+            const select = document.getElementById('select-event');
+            select.innerHTML = '<option value="">-- Chọn sự kiện đang Online --</option>';
+            
+            const onlineEvents = dbEvents.filter(e => e.status === 'Online');
+            onlineEvents.forEach(e => {
+                select.innerHTML += `<option value="${e.eventName}" data-time="${e.eventTime}">${e.eventName} (${e.eventTime})</option>`;
+            });
+            updateTicketClasses();
+        }
+
+        function updateTicketClasses() {
+            const select = document.getElementById('select-ticket-class');
+            select.innerHTML = '';
+            dbTickets.forEach(t => {
+                select.innerHTML += `<option value="${t.ticketClass}">${t.ticketClass} - [${t.price}]</option>`;
+            });
+        }
+
+        // 2. Tạo logic Mã vé và Giờ check-in tự động khi mở Form Xác nhận
+        function openConfirmationModal() {
+            const name = document.getElementById('cust-name').value.trim();
+            const cid = document.getElementById('cust-id').value.trim();
+            const phone = document.getElementById('cust-phone').value.trim();
+            const eventSelect = document.getElementById('select-event');
+            const ticketClass = document.getElementById('select-ticket-class').value;
+
+            if(!name || !cid || !phone || !eventSelect.value) {
+                return alert("Vui lòng nhập đầy đủ thông tin khách hàng và chọn sự kiện!");
+            }
+
+            const selectedOption = eventSelect.options[eventSelect.selectedIndex];
+            const eventTimeStr = selectedOption.getAttribute('data-time'); // Chuỗi YYYY-MM-DD HH:mm
+
+            // Tính mã vé: Ngày giờ hiện tại (Format: YYYYMMDDHHMM) + 373764 + Số thứ tự tăng dần
+            const now = new Date();
+            const pad = (n) => n < 10 ? '0' + n : n;
+            const timeStamp = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}`;
+            const baseCode = parseInt(timeStamp) + 373764;
+            const finalTicketCode = "TKT-" + (baseCode + currentTicketIndex);
+
+            // Tính thời gian check-in: Trước 1 tiếng khi sự kiện bắt đầu
+            const eventDate = new Date(eventTimeStr.replace(/-/g, '/')); 
+            eventDate.setHours(eventDate.getHours() - 1);
+            const checkInTimeStr = eventDate.getFullYear() + '-' + pad(eventDate.getMonth()+1) + '-' + pad(eventDate.getDate()) + ' ' + pad(eventDate.getHours()) + ':' + pad(eventDate.getMinutes());
+
+            // Lưu tạm thời gói dữ liệu
+            tempActiveTicket = {
+                ticketCode: finalTicketCode,
+                customerName: name,
+                ccid: cid,
+                phoneNumber: phone,
+                eventName: eventSelect.value,
+                ticketClass: ticketClass,
+                checkInTime: checkInTimeStr
+            };
+
+            // Đổ dữ liệu lên màn hình popup xác nhận
+            document.getElementById('lbl-cust-name').innerText = name;
+            document.getElementById('lbl-cust-phone').innerText = phone;
+            document.getElementById('lbl-event-name').innerText = eventSelect.value;
+            document.getElementById('lbl-ticket-class').innerText = ticketClass;
+            document.getElementById('lbl-ticket-code').innerText = finalTicketCode;
+            document.getElementById('lbl-checkin-time').innerText = checkInTimeStr;
+
+            document.getElementById('confirm-modal').style.display = 'flex';
+        }
+
+        // Lựa chọn 1: Xác nhận mua -> Lưu vào Database chung
+        function confirmPurchase() {
+            if(!tempActiveTicket) return;
+
+            if (SCRIPT_URL.includes("YOUR_GOOGLE")) {
+                let localOrders = JSON.parse(localStorage.getItem('orders')) || [];
+                localOrders.push(tempActiveTicket);
+                localStorage.setItem('orders', JSON.stringify(localOrders));
+                
+                currentTicketIndex++; // Tăng biến số đếm lên +1 cho lần tạo tiếp theo
+                renderSoldTicketsTable(localOrders);
+                clearInputs();
+                closeModal();
+            } else {
+                fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'orders', payload: tempActiveTicket })
+                }).then(() => {
+                    currentTicketIndex++; 
+                    setTimeout(() => {
+                        fetch(`${SCRIPT_URL}?action=orders`).then(r => r.json()).then(orders => {
+                            renderSoldTicketsTable(orders);
+                        });
+                    }, 500);
+                    clearInputs();
+                    closeModal();
+                });
+            }
+        }
+
+        // Lựa chọn 2: Hủy vé -> Đóng form và không thực hiện lưu trữ
+        function closeModal() {
+            document.getElementById('confirm-modal').style.display = 'none';
+            tempActiveTicket = null;
+        }
+
+        function clearInputs() {
+            document.getElementById('cust-name').value = '';
+            document.getElementById('cust-id').value = '';
+            document.getElementById('cust-phone').value = '';
+        }
+
+        // Hiển thị vé bán thành công ra bảng lịch sử màn hình
+        function renderSoldTicketsTable(orders) {
+            const tbody = document.getElementById('sold-tickets-body');
+            tbody.innerHTML = '';
+            orders.forEach(o => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td style="color: #fbbf24; font-weight:600;">${o.ticketCode}</td>
+                        <td><strong>${o.customerName}</strong></td>
+                        <td>${o.eventName}</td>
+                        <td>${o.ticketClass}</td>
+                        <td style="color: #60a5fa;">${o.checkInTime}</td>
+                    </tr>
+                `;
+            });
+        }
+    </script>
+</body>
+</html>
